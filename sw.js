@@ -1,7 +1,7 @@
-// Smart Math Tutor - Service Worker
+// aiMath - Service Worker
 // Cache-first strategy for static assets; bypass for API calls
 
-const CACHE_NAME = 'smart-math-tutor-v2';
+const CACHE_NAME = 'aimath-v2.1';
 
 const STATIC_ASSETS = [
   '/',

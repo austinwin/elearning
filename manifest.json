@@ -1,6 +1,6 @@
 {
-  "name": "Smart Math Tutor",
-  "short_name": "Math Tutor",
+  "name": "aiMath",
+  "short_name": "aiMath",
   "description": "AI-assisted adaptive math tutor for children Pre-K through 5th Grade",
   "start_url": "/",
   "scope": "/",

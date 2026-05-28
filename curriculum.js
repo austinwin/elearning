@@ -1,4 +1,4 @@
-// Smart Math Tutor - Curriculum & Local Question Generator
+// aiMath - Curriculum & Local Question Generator
 // Covers Pre-K through 5th Grade across all math domains
 
 const GRADE_LEVELS = ['pre-k', 'kindergarten', '1st', '2nd', '3rd', '4th', '5th'];

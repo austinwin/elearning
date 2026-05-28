@@ -1,8 +1,8 @@
-// Smart Math Tutor - IndexedDB Database Layer
+// aiMath - IndexedDB Database Layer
 // Stores: attempts, skillProgress, dailyPractice, sessions, generatedQuestions
 
 const DB_NAME = 'SmartMathTutorDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let db = null;
 
@@ -48,6 +48,12 @@ function openDB() {
       // Generated questions cache
       if (!database.objectStoreNames.contains('generatedQuestions')) {
         database.createObjectStore('generatedQuestions', { keyPath: 'id' });
+      }
+
+      // AI evaluation logs
+      if (!database.objectStoreNames.contains('evaluationLogs')) {
+        const evalStore = database.createObjectStore('evaluationLogs', { keyPath: 'id', autoIncrement: true });
+        evalStore.createIndex('date', 'date', { unique: false });
       }
     };
 
@@ -435,11 +441,43 @@ async function importAllData(data) {
   }
 }
 
+// --- Evaluation Logs ---
+
+async function saveEvaluationLog(entry) {
+  await openDB();
+  return new Promise((resolve, reject) => {
+    const store = getStore('evaluationLogs', 'readwrite');
+    const request = store.add(entry);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function getEvaluationLogs(limit = 50) {
+  await openDB();
+  return new Promise((resolve, reject) => {
+    const store = getStore('evaluationLogs');
+    const index = store.index('date');
+    const results = [];
+    const request = index.openCursor(null, 'prev');
+    request.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor && results.length < limit) {
+        results.push(cursor.value);
+        cursor.continue();
+      } else {
+        resolve(results);
+      }
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
 // --- Reset ---
 
 async function resetAllData() {
   await openDB();
-  const storeNames = ['attempts', 'skillProgress', 'dailyPractice', 'sessions', 'generatedQuestions'];
+  const storeNames = ['attempts', 'skillProgress', 'dailyPractice', 'sessions', 'generatedQuestions', 'evaluationLogs'];
   for (const name of storeNames) {
     await new Promise((resolve, reject) => {
       const store = getStore(name, 'readwrite');

@@ -1,4 +1,4 @@
-// Smart Math Tutor - AI Integration (Multi-Vendor)
+// aiMath - AI Integration (Multi-Vendor)
 // Supports DeepSeek and Xiaomi MiMo with OpenAI-compatible endpoints
 // Gracefully falls back to local generator
 //
@@ -54,12 +54,15 @@ function getAIModel() {
 
 function getAIEndpoint() {
   const vendor = getAIVendor();
-  // Check for custom endpoint override
-  const customEndpoint = localStorage.getItem('smart_math_custom_endpoint');
-  if (customEndpoint && customEndpoint.trim()) {
-    return customEndpoint.trim();
+  const v = AI_VENDORS[vendor] || AI_VENDORS[DEFAULT_VENDOR];
+  // Custom endpoint only applies to vendors that explicitly support it
+  if (v.customEndpoint) {
+    const customEndpoint = localStorage.getItem('smart_math_custom_endpoint');
+    if (customEndpoint && customEndpoint.trim()) {
+      return customEndpoint.trim();
+    }
   }
-  return AI_VENDORS[vendor] ? AI_VENDORS[vendor].endpoint : AI_VENDORS[DEFAULT_VENDOR].endpoint;
+  return v.endpoint;
 }
 
 function getAIConfig() {

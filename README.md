@@ -1,4 +1,4 @@
-# Smart Math Tutor
+# aiMath
 
 **AI-assisted adaptive math tutor for children Pre-K through 5th Grade**
 
@@ -243,4 +243,4 @@ This project is provided for educational and personal use.
 
 ---
 
-**Smart Math Tutor** · Helping kids love math, one question at a time 🌟
+**aiMath** · Helping kids love math, one question at a time 🌟

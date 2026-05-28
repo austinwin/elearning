@@ -1,4 +1,4 @@
-// Smart Math Tutor - Main Application
+// aiMath - Main Application
 // Complete PWA math tutor for Pre-K through 5th Grade
 
 (function () {
@@ -87,6 +87,9 @@
     // Set up UI event listeners
     setupEventListeners();
 
+    // Check data state for clear button availability
+    checkDataState();
+
     // Show initial mode
     showKidMode();
 
@@ -125,7 +128,8 @@
     $('#saveSettingsBtn').addEventListener('click', saveParentSettings);
     $('#saveAllSettingsBtn').addEventListener('click', saveParentSettings);
     $('#clearApiKeyBtn').addEventListener('click', clearAPIKey);
-    $('#resetProgressBtn').addEventListener('click', confirmResetProgress);
+    $('#clearQuestionsBtn').addEventListener('click', clearAllQuestions);
+    $('#resetAllDataBtn').addEventListener('click', factoryReset);
     $('#exportDataBtn').addEventListener('click', exportProgress);
     $('#importDataBtn').addEventListener('click', () => $('#importFileInput').click());
     $('#importFileInput').addEventListener('change', importProgress);
@@ -166,10 +170,10 @@
     // Dialog
     $('#dialogCancel').addEventListener('click', closeDialog);
     $('#dialogConfirm').addEventListener('click', () => {
+      const cb = window._dialogCallback;
       closeDialog();
-      if (window._dialogCallback) {
-        window._dialogCallback();
-        window._dialogCallback = null;
+      if (cb) {
+        cb();
       }
     });
   }
@@ -325,17 +329,35 @@
         }))
       };
 
-      // Generate question — use AI only at evaluation checkpoints to save tokens
+      // Generate question — use AI on first question and at evaluation checkpoints
       let question;
       const evalFreq = settings.aiEvalFrequency;
       state.questionsSinceLastAI++;
       localStorage.setItem('smart_math_ai_counter', state.questionsSinceLastAI);
 
-      const shouldUseAI = canUseAI() && state.questionsSinceLastAI >= evalFreq;
+      // Use AI: always on question 1, then every N after that
+      const isFirstQuestion = state.questionsSinceLastAI === 1;
+      const isCheckpoint = state.questionsSinceLastAI >= evalFreq;
+      const shouldUseAI = canUseAI() && (isFirstQuestion || isCheckpoint);
 
       if (shouldUseAI) {
+        showEvalLoadingState();
         try {
           question = await generateAIQuestion(profile);
+          // Save AI evaluation/reasoning to log
+          if (question && question.reasoning) {
+            await saveEvaluationLog({
+              date: new Date().toISOString(),
+              gradeLevel: settings.gradeLevel,
+              domain: question.domain,
+              skill: question.skill,
+              difficulty: question.difficulty,
+              reasoning: question.reasoning,
+              questionCount: state.questionsSinceLastAI,
+              source: question.aiVendor || 'ai',
+              model: question.aiModel || ''
+            });
+          }
           state.questionsSinceLastAI = 0;
           localStorage.setItem('smart_math_ai_counter', '0');
         } catch (e) {
@@ -419,6 +441,18 @@
       btn.addEventListener('click', () => selectChoice(choice, btn));
       choicesContainer.appendChild(btn);
     });
+
+    // Show source badge (AI vs local)
+    const badge = $('#sourceBadge');
+    if (q.source === 'ai') {
+      badge.className = 'question-source-badge source-ai';
+      badge.textContent = '🤖 AI';
+      badge.setAttribute('aria-label', 'AI-generated question');
+    } else {
+      badge.className = 'question-source-badge source-local';
+      badge.textContent = '📝 Local';
+      badge.setAttribute('aria-label', 'Locally generated question');
+    }
   }
 
   function selectChoice(choice, button) {
@@ -448,6 +482,17 @@
       </div>
     `;
     $('#choicesContainer').innerHTML = '';
+    $('#sourceBadge').classList.add('hidden');
+  }
+
+  function showEvalLoadingState() {
+    $('#feedbackArea').innerHTML = `
+      <div class="loading-state eval-loading">
+        <div class="loading-spinner" aria-label="Evaluating"></div>
+        <span class="loading-text">🧠 AI is checking your progress...</span>
+        <span class="loading-subtext">This helps pick the best next question for you!</span>
+      </div>
+    `;
   }
 
   // --- Answer Submission ---
@@ -930,10 +975,13 @@
     if (info && info.customEndpoint) {
       endpointGroup.style.display = '';
       if (!$('#customEndpointInput').value) {
-        $('#customEndpointInput').value = info.endpoint || '';
+        $('#customEndpointInput').value = localStorage.getItem('smart_math_custom_endpoint') || info.endpoint || '';
       }
     } else {
       endpointGroup.style.display = 'none';
+      // Clear stale custom endpoint when switching to a non-custom vendor like DeepSeek
+      localStorage.removeItem('smart_math_custom_endpoint');
+      $('#customEndpointInput').value = '';
     }
   }
 
@@ -964,11 +1012,17 @@
     state.questionsSinceLastAI = 0;
     localStorage.setItem('smart_math_ai_counter', '0');
 
-    // Save custom endpoint if visible
-    const customEndpoint = $('#customEndpointInput').value.trim();
-    if (customEndpoint) {
-      localStorage.setItem('smart_math_custom_endpoint', customEndpoint);
+    // Save custom endpoint — only for vendors that support it
+    const vendorInfoNow = getVendorInfo(aiVendor);
+    if (vendorInfoNow && vendorInfoNow.customEndpoint) {
+      const customEndpoint = $('#customEndpointInput').value.trim();
+      if (customEndpoint) {
+        localStorage.setItem('smart_math_custom_endpoint', customEndpoint);
+      } else {
+        localStorage.removeItem('smart_math_custom_endpoint');
+      }
     } else {
+      // Not a custom-endpoint vendor — clear any stale override
       localStorage.removeItem('smart_math_custom_endpoint');
     }
 
@@ -1027,6 +1081,81 @@
         }
       }
     );
+  }
+
+  function clearAllQuestions() {
+    showConfirmDialog(
+      'Clear All Questions & Progress?',
+      'This will delete all question history, skill progress, daily records, and evaluation logs. Stars and streaks will reset. Your settings (API key, child name, grade) will be kept. This cannot be undone.',
+      async () => {
+        try {
+          await resetAllData();
+          state.starCount = 0;
+          state.streak = 0;
+          state.bestStreak = 0;
+          state.questionsSinceLastAI = 0;
+          localStorage.setItem('smart_math_stars', '0');
+          localStorage.setItem('smart_math_streak', '0');
+          localStorage.setItem('smart_math_best_streak', '0');
+          localStorage.setItem('smart_math_ai_counter', '0');
+          updateKidUI();
+          const df = $('#dataFeedback');
+          if (df) { df.textContent = '✅ All questions and progress cleared. Settings preserved.'; df.style.color = '#2E7D32'; }
+          checkDataState();
+          switchParentTab('data');
+        } catch (e) {
+          const df = $('#dataFeedback');
+          if (df) { df.textContent = '❌ Failed to clear data. Please try again.'; df.style.color = '#C62828'; }
+        }
+      }
+    );
+  }
+
+  function factoryReset() {
+    showConfirmDialog(
+      'Factory Reset Everything?',
+      'This will delete ALL data including settings (API key, child name, grade, preferences). The app will return to its original state. This cannot be undone.',
+      async () => {
+        try {
+          await resetAllData();
+          const allKeys = Object.keys(localStorage);
+          for (const key of allKeys) {
+            if (key.startsWith('smart_math_')) {
+              localStorage.removeItem(key);
+            }
+          }
+          state.starCount = 0;
+          state.streak = 0;
+          state.bestStreak = 0;
+          state.questionsSinceLastAI = 0;
+          updateKidUI();
+          loadParentForm();
+          const df = $('#dataFeedback');
+          if (df) { df.textContent = '✅ Complete factory reset done. All data erased.'; df.style.color = '#2E7D32'; }
+          checkDataState();
+          switchParentTab('data');
+        } catch (e) {
+          const df = $('#dataFeedback');
+          if (df) { df.textContent = '❌ Failed to reset. Please try again.'; df.style.color = '#C62828'; }
+        }
+      }
+    );
+  }
+
+  async function checkDataState() {
+    try {
+      const total = await getTotalAttempts();
+      const empty = total === 0;
+      const clearBtn = $('#clearQuestionsBtn');
+      const resetBtn = $('#resetAllDataBtn');
+      if (clearBtn) clearBtn.disabled = empty;
+      if (resetBtn) resetBtn.disabled = empty;
+    } catch (e) {
+      const clearBtn = $('#clearQuestionsBtn');
+      const resetBtn = $('#resetAllDataBtn');
+      if (clearBtn) clearBtn.disabled = true;
+      if (resetBtn) resetBtn.disabled = true;
+    }
   }
 
   async function exportProgress() {
@@ -1253,6 +1382,8 @@
     if (tabId === 'dashboard') renderParentDashboard();
     if (tabId === 'history') { populateHistoryFilters(); renderHistory(); }
     if (tabId === 'coach') initChatTab();
+    if (tabId === 'evallog') renderEvalLog();
+    if (tabId === 'data') checkDataState();
     if (tabId === 'settings') loadParentForm();
   }
 
@@ -1335,6 +1466,7 @@
                 <div><strong>Source:</strong> ${sourceLabel}</div>
                 <div><strong>Time Spent:</strong> ${timeSpent}</div>
                 <div><strong>Hint:</strong> ${hintText}</div>
+                ${a.aiReasoning ? `<div style="grid-column:1/-1;"><strong>🤖 AI Reasoning:</strong><br>${escapeHtml(a.aiReasoning)}</div>` : ''}
               </div>
             </div>
           </td>
@@ -1383,6 +1515,38 @@
   function initChatTab() {
     // Chat is already set up; ensure quick actions are visible
     $('#chatQuickActions').classList.remove('hidden');
+  }
+
+  // --- Evaluation Log Tab ---
+  async function renderEvalLog() {
+    const content = $('#evalLogContent');
+    try {
+      const logs = await getEvaluationLogs(50);
+      if (!logs || logs.length === 0) {
+        content.innerHTML = '<p class="text-center text-muted mt-4">📝 No AI evaluations yet. Complete some questions with AI enabled to see evaluations here.</p>';
+        return;
+      }
+
+      let html = '<div class="eval-log-list">';
+      for (const log of logs) {
+        const date = new Date(log.date).toLocaleDateString();
+        const time = new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const sourceLabel = log.source === 'deepseek' ? '🤖 DeepSeek' : (log.source === 'mimo' ? '🤖 MiMo' : '🤖 AI');
+        html += `<div class="eval-log-item">
+          <div class="eval-log-header">
+            <span class="eval-log-date">${date} ${time}</span>
+            <span class="eval-log-badge">${sourceLabel}${log.model ? ' · ' + log.model : ''}</span>
+            <span class="eval-log-meta">Q#${log.questionCount || '?'} · ${log.domain || ''} · ${log.skill || ''} · Lvl ${log.difficulty || '?'}</span>
+          </div>
+          <div class="eval-log-reasoning">${escapeHtml(log.reasoning || '')}</div>
+        </div>`;
+      }
+      html += '</div>';
+      content.innerHTML = html;
+    } catch (e) {
+      console.error('Eval log render error:', e);
+      content.innerHTML = '<p class="text-center text-muted mt-4">Could not load evaluation log.</p>';
+    }
   }
 
   async function sendChatMessage() {

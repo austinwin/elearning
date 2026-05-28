@@ -1,4 +1,4 @@
-/* Smart Math Tutor - Complete Stylesheet */
+/* aiMath - Complete Stylesheet */
 /* Mobile-first, responsive, kid-friendly design */
 
 /* --- CSS Custom Properties --- */
@@ -319,6 +319,7 @@ a {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  position: relative;
 }
 
 .question-header {
@@ -1050,6 +1051,54 @@ a {
   animation: pulse 0.6s ease;
 }
 
+/* --- Source Badge (AI / Local indicator) --- */
+.question-source-badge {
+  position: absolute;
+  bottom: 10px;
+  right: 14px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 12px;
+  letter-spacing: 0.3px;
+  pointer-events: none;
+  animation: fadeIn 0.3s ease;
+}
+
+.source-ai {
+  background: linear-gradient(135deg, #E8F0FE, #D2E3FC);
+  color: #1A56C4;
+  border: 1px solid #A8C8F0;
+}
+
+.source-local {
+  background: linear-gradient(135deg, #F0F0F0, #E8E8E8);
+  color: #666;
+  border: 1px solid #D0D0D0;
+}
+
+/* --- Evaluation Loading State --- */
+.eval-loading {
+  background: linear-gradient(135deg, #EBF3FC, #F0E6FF);
+  border-radius: var(--border-radius);
+  padding: 20px;
+}
+
+.eval-loading .loading-spinner {
+  border-top-color: #7C5CBF;
+  border-right-color: #4A90D9;
+  width: 36px;
+  height: 36px;
+  border-width: 3px;
+}
+
+.loading-subtext {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
 /* --- Utility Classes --- */
 .hidden {
   display: none !important;
@@ -1526,4 +1575,53 @@ a {
   .history-table {
     font-size: var(--font-size-sm);
   }
+}
+
+/* --- Evaluation Log --- */
+.eval-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.eval-log-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  padding: 14px 16px;
+  animation: fadeInUp 0.2s ease;
+}
+
+.eval-log-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: var(--font-size-xs);
+}
+
+.eval-log-date {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.eval-log-badge {
+  background: #E8F0FE;
+  color: #1A56C4;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: var(--font-size-xs);
+}
+
+.eval-log-meta {
+  color: var(--text-muted);
+}
+
+.eval-log-reasoning {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.55;
+  white-space: pre-wrap;
 }

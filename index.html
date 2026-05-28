@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <meta name="description" content="Smart Math Tutor - AI-assisted adaptive math tutor for children Pre-K through 5th Grade">
+  <meta name="description" content="aiMath - AI-assisted adaptive math tutor for children Pre-K through 5th Grade">
   <meta name="theme-color" content="#4A90D9">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Math Tutor">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/favicon.svg">
-  <title>Smart Math Tutor</title>
+  <title>aiMath</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -23,7 +23,7 @@
     <header class="app-header" role="banner">
       <div class="header-left">
         <span class="app-logo" aria-hidden="true">∑</span>
-        <h1 class="app-title">Smart Math Tutor</h1>
+        <h1 class="app-title">aiMath</h1>
         <span class="grade-badge" id="gradeBadge">2nd Grade</span>
         <span class="offline-badge" id="offlineBadge" aria-live="polite">📡 Offline Practice</span>
       </div>
@@ -106,6 +106,9 @@
             <span class="hint-icon">💡</span>
             <span id="hintText"></span>
           </div>
+
+          <!-- Source Badge -->
+          <div class="question-source-badge hidden" id="sourceBadge" aria-label="Question source"></div>
         </section>
 
       </div>
@@ -119,6 +122,7 @@
           <button class="parent-tab" role="tab" aria-selected="false" data-tab="dashboard">📊 Dashboard</button>
           <button class="parent-tab" role="tab" aria-selected="false" data-tab="history">📋 History</button>
           <button class="parent-tab" role="tab" aria-selected="false" data-tab="coach">🤖 AI Coach</button>
+          <button class="parent-tab" role="tab" aria-selected="false" data-tab="evallog">📋 Eval Log</button>
           <button class="parent-tab" role="tab" aria-selected="false" data-tab="data">💾 Data</button>
         </nav>
 
@@ -264,6 +268,17 @@
           </div>
         </section>
 
+        <!-- Tab: Eval Log -->
+        <section class="parent-tab-panel" id="tab-evallog" role="tabpanel">
+          <div class="parent-section">
+            <h2>📋 AI Evaluation Log</h2>
+            <p class="input-hint mb-4">Each time the AI evaluates your child's progress, the reasoning is saved here.</p>
+            <div id="evalLogContent">
+              <p class="text-center text-muted mt-4">📝 No AI evaluations yet. Complete some questions with AI enabled to see evaluations here.</p>
+            </div>
+          </div>
+        </section>
+
         <!-- Tab: Data -->
         <section class="parent-tab-panel" id="tab-data" role="tabpanel">
           <div class="parent-section">
@@ -274,9 +289,17 @@
               <input type="file" id="importFileInput" accept=".json" class="hidden" aria-label="Import progress file">
             </div>
             <p class="input-hint mt-2">Export saves all progress as JSON. Import replaces current data.</p>
-            <div class="form-row mt-4">
-              <button class="btn btn-danger" id="resetProgressBtn">⚠️ Reset All Progress</button>
+          </div>
+          <div class="parent-section">
+            <h2>🗑️ Clear Data</h2>
+            <p class="input-hint mb-4">Remove all question history, progress, evaluations, and settings from this device.</p>
+            <div class="form-row">
+              <button class="btn btn-danger" id="clearQuestionsBtn" disabled>🗑️ Clear All Questions & Progress</button>
             </div>
+            <div class="form-row mt-2">
+              <button class="btn btn-danger" id="resetAllDataBtn" disabled>⚠️ Factory Reset (Everything)</button>
+            </div>
+            <div id="dataFeedback" class="text-center mt-3" style="min-height:24px;font-weight:600;font-size:0.95rem;" aria-live="polite"></div>
           </div>
         </section>
 
@@ -286,7 +309,7 @@
 
     <!-- ===== Footer ===== -->
     <footer class="app-footer" role="contentinfo">
-      <p>Smart Math Tutor · Learn Anytime, Anywhere 🌍</p>
+      <p>aiMath · Learn Anytime, Anywhere 🌍</p>
     </footer>
 
   </div>
