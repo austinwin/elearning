@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="description" content="Smart Math Tutor - AI-assisted adaptive math tutor for children Pre-K through 5th Grade">
+  <meta name="theme-color" content="#4A90D9">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Math Tutor">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%234A90D9'/%3E%3Ctext x='16' y='23' font-size='22' text-anchor='middle' fill='white' font-family='Arial'%3E∑%3C/text%3E%3C/svg%3E">
+  <title>Smart Math Tutor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ===== App Shell ===== -->
+  <div class="app-shell">
+
+    <!-- ===== Header ===== -->
+    <header class="app-header" role="banner">
+      <div class="header-left">
+        <span class="app-logo" aria-hidden="true">∑</span>
+        <h1 class="app-title">Smart Math Tutor</h1>
+        <span class="grade-badge" id="gradeBadge">2nd Grade</span>
+        <span class="offline-badge" id="offlineBadge" aria-live="polite">📡 Offline Practice</span>
+      </div>
+      <div class="header-right">
+        <span class="mode-label" id="modeLabel">👧 Kid Mode</span>
+        <button class="icon-button" id="settingsBtn" aria-label="Open Parent Settings" title="Parent Settings">
+          ⚙️
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== Main Content ===== -->
+    <main class="app-main" role="main">
+
+      <!-- ===== KID MODE ===== -->
+      <div id="kidMode" class="kid-mode">
+
+        <!-- Progress Section -->
+        <section class="progress-section" aria-label="Your progress">
+          <div class="progress-stats">
+            <span class="stat-item">
+              <span class="stat-icon">👋</span>
+              <span id="childNameDisplay">Learner</span>
+            </span>
+            <span class="stat-item">
+              <span class="stat-icon stat-stars">⭐</span>
+              <span class="stat-value" id="starCount">0</span>
+            </span>
+            <span class="stat-item">
+              <span class="stat-icon">🔥</span>
+              <span class="stat-value" id="streakCount">0</span>
+            </span>
+            <span class="stat-item">
+              <span class="stat-icon">📝</span>
+              <span id="dailyCount">0</span>/10 today
+            </span>
+          </div>
+          <div class="progress-bar-container" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Daily progress">
+            <div class="progress-bar-fill" id="progressBarFill" style="width: 0%"></div>
+          </div>
+        </section>
+
+        <!-- Question Card -->
+        <section class="question-card" aria-label="Math question">
+          <div class="question-header">
+            <span class="question-domain" id="questionDomain">Math</span>
+            <span class="question-skill" id="questionSkill">Practice</span>
+            <div class="question-difficulty" id="difficultyDots" aria-label="Difficulty level">
+              <!-- Filled dynamically -->
+            </div>
+          </div>
+
+          <div class="question-text" id="questionText" role="heading" aria-level="2">
+            Loading your question...
+          </div>
+
+          <!-- Answer Area — Multiple Choice Only -->
+          <div class="answer-area" id="answerArea">
+            <div id="choicesContainer" class="choices-grid" role="radiogroup" aria-label="Answer choices">
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="action-buttons">
+            <button class="btn btn-hint" id="hintBtn" aria-label="Show hint">
+              💡 Hint
+            </button>
+            <button class="btn btn-speak" id="speakBtn" aria-label="Read question aloud">
+              🔊 Read
+            </button>
+          </div>
+
+          <!-- Feedback -->
+          <div class="feedback-area" id="feedbackArea" aria-live="polite" aria-atomic="true">
+          </div>
+
+          <!-- Hint Display -->
+          <div class="hint-display hidden" id="hintDisplay" aria-live="polite">
+            <span class="hint-icon">💡</span>
+            <span id="hintText"></span>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ===== PARENT MODE ===== -->
+      <div id="parentMode" class="parent-mode hidden">
+
+        <!-- Parent Tabs -->
+        <nav class="parent-tabs" role="tablist" aria-label="Parent sections">
+          <button class="parent-tab active" role="tab" aria-selected="true" data-tab="settings">⚙️ Settings</button>
+          <button class="parent-tab" role="tab" aria-selected="false" data-tab="dashboard">📊 Dashboard</button>
+          <button class="parent-tab" role="tab" aria-selected="false" data-tab="history">📋 History</button>
+          <button class="parent-tab" role="tab" aria-selected="false" data-tab="coach">🤖 AI Coach</button>
+          <button class="parent-tab" role="tab" aria-selected="false" data-tab="data">💾 Data</button>
+        </nav>
+
+        <!-- Tab: Settings -->
+        <section class="parent-tab-panel active" id="tab-settings" role="tabpanel">
+          <div class="parent-section">
+            <h2>🔑 AI Settings</h2>
+            <div class="form-group">
+              <label for="aiVendorSelect">AI Provider</label>
+              <select id="aiVendorSelect" aria-label="AI vendor/provider">
+                <option value="deepseek">DeepSeek</option>
+                <option value="mimo">Mimo</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="aiModelSelect">Model</label>
+              <select id="aiModelSelect" aria-label="AI model"></select>
+            </div>
+            <div class="form-group" id="customEndpointGroup" style="display:none;">
+              <label for="customEndpointInput">API Endpoint URL</label>
+              <input type="text" id="customEndpointInput" placeholder="https://api.example.com/v1/chat/completions" aria-label="Custom API endpoint URL" autocomplete="off">
+              <span class="input-hint">Enter the full chat completions endpoint URL for this provider.</span>
+            </div>
+            <div class="form-group">
+              <label for="apiKeyInput">API Key</label>
+              <input type="password" id="apiKeyInput" placeholder="sk-..." aria-label="API Key" autocomplete="off">
+              <span class="input-hint" id="apiKeyHint">Get your key at platform.deepseek.com</span>
+            </div>
+            <p class="api-key-note">🔒 Your API key is stored only on this device.</p>
+            <div class="form-row">
+              <button class="btn btn-primary" id="saveSettingsBtn">💾 Save Settings</button>
+              <button class="btn btn-danger btn-small" id="clearApiKeyBtn">🗑️ Clear</button>
+            </div>
+          </div>
+
+          <div class="parent-section">
+            <h2>👧 Child Settings</h2>
+            <div class="form-group">
+              <label for="childNameInput">Child's Nickname</label>
+              <input type="text" id="childNameInput" placeholder="e.g., Emma" maxlength="30">
+            </div>
+            <div class="form-group">
+              <label for="gradeSelect">Grade Level</label>
+              <select id="gradeSelect" aria-label="Grade level">
+                <option value="pre-k">Pre-K (Ages 3-4)</option>
+                <option value="kindergarten">Kindergarten (Ages 5-6)</option>
+                <option value="1st">1st Grade (Ages 6-7)</option>
+                <option value="2nd" selected>2nd Grade (Ages 7-8)</option>
+                <option value="3rd">3rd Grade (Ages 8-9)</option>
+                <option value="4th">4th Grade (Ages 9-10)</option>
+                <option value="5th">5th Grade (Ages 10-11)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="parent-section">
+            <h2>🎛️ Preferences</h2>
+            <div class="toggle-row">
+              <span class="toggle-label">🤖 Use AI Questions</span>
+              <label class="toggle-switch" aria-label="Toggle AI questions">
+                <input type="checkbox" id="aiToggle" checked><span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="toggle-row">
+              <span class="toggle-label">🔊 Sound</span>
+              <label class="toggle-switch" aria-label="Toggle sound">
+                <input type="checkbox" id="soundToggle" checked><span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Save All Settings -->
+          <div class="parent-section" style="text-align:center;">
+            <button class="btn btn-primary" id="saveAllSettingsBtn" style="min-height:52px;font-size:1.1rem;width:100%;max-width:360px;">
+              💾 Save All Settings
+            </button>
+            <div id="settingsFeedback" class="text-center mt-2" style="min-height:24px;font-weight:600;font-size:0.95rem;" aria-live="polite"></div>
+          </div>
+        </section>
+
+        <!-- Tab: Dashboard -->
+        <section class="parent-tab-panel" id="tab-dashboard" role="tabpanel">
+          <div id="dashboardContent">
+            <div class="loading-state"><div class="loading-spinner"></div><span class="loading-text">Loading dashboard...</span></div>
+          </div>
+        </section>
+
+        <!-- Tab: History -->
+        <section class="parent-tab-panel" id="tab-history" role="tabpanel">
+          <div class="parent-section">
+            <h2>📋 Question History</h2>
+            <div class="history-controls">
+              <select id="historyDomainFilter" aria-label="Filter by domain">
+                <option value="">All Domains</option>
+              </select>
+              <select id="historySort" aria-label="Sort order">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="correct">Correct Only</option>
+                <option value="wrong">Wrong Only</option>
+              </select>
+            </div>
+            <div id="historyContent">
+              <div class="loading-state"><div class="loading-spinner"></div><span class="loading-text">Loading history...</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab: AI Coach -->
+        <section class="parent-tab-panel" id="tab-coach" role="tabpanel">
+          <div class="parent-section">
+            <h2>🤖 AI Learning Coach</h2>
+            <p class="input-hint mb-4">Ask the AI to evaluate your child's progress based on all their practice history.</p>
+            <div class="chat-container" id="chatContainer">
+              <div class="chat-messages" id="chatMessages">
+                <div class="chat-message assistant">
+                  <div class="chat-bubble">
+                    👋 I'm your AI learning coach. I can analyze your child's complete practice history and provide insights. Tap <strong>"Evaluate Progress"</strong> below to get started, or ask me any question about their learning.
+                  </div>
+                </div>
+              </div>
+              <div class="chat-input-row">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Ask about your child's progress..." aria-label="Chat message">
+                <button class="btn btn-primary btn-small" id="chatSendBtn">Send</button>
+              </div>
+              <div class="chat-quick-actions" id="chatQuickActions">
+                <button class="btn btn-secondary btn-small chat-quick-btn" data-action="evaluate">📈 Evaluate Progress</button>
+                <button class="btn btn-secondary btn-small chat-quick-btn" data-action="weaknesses">🎯 Find Weaknesses</button>
+                <button class="btn btn-secondary btn-small chat-quick-btn" data-action="recommend">💡 Recommend Focus</button>
+                <button class="btn btn-secondary btn-small chat-quick-btn" data-action="summary">📝 Learning Summary</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab: Data -->
+        <section class="parent-tab-panel" id="tab-data" role="tabpanel">
+          <div class="parent-section">
+            <h2>💾 Data Management</h2>
+            <div class="form-row">
+              <button class="btn btn-secondary" id="exportDataBtn">📥 Export Progress</button>
+              <button class="btn btn-secondary" id="importDataBtn">📤 Import Progress</button>
+              <input type="file" id="importFileInput" accept=".json" class="hidden" aria-label="Import progress file">
+            </div>
+            <p class="input-hint mt-2">Export saves all progress as JSON. Import replaces current data.</p>
+            <div class="form-row mt-4">
+              <button class="btn btn-danger" id="resetProgressBtn">⚠️ Reset All Progress</button>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+    </main>
+
+    <!-- ===== Footer ===== -->
+    <footer class="app-footer" role="contentinfo">
+      <p>Smart Math Tutor · Learn Anytime, Anywhere 🌍</p>
+    </footer>
+
+  </div>
+
+  <!-- ===== Confirmation Dialog ===== -->
+  <div class="dialog-overlay hidden" id="dialogOverlay" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+    <div class="dialog-box">
+      <h3 id="dialogTitle">Confirm</h3>
+      <p id="dialogMessage">Are you sure?</p>
+      <div class="dialog-buttons">
+        <button class="btn btn-secondary" id="dialogCancel">Cancel</button>
+        <button class="btn btn-danger" id="dialogConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Scripts (order matters!) ===== -->
+  <script src="db.js"></script>
+  <script src="curriculum.js"></script>
+  <script src="ai.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
