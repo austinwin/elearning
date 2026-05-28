@@ -288,6 +288,13 @@ a {
   color: var(--color-star);
 }
 
+.daily-count-badge {
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
 .progress-bar-container {
   width: 100%;
   height: 10px;

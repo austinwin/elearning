@@ -20,7 +20,8 @@
     isLoading: false,
     questionStartTime: Date.now(),
     lastFeedbackTimeout: null,
-    chatHistory: [] // For AI Coach conversation context
+    chatHistory: [], // For AI Coach conversation context
+    questionsSinceLastAI: parseInt(localStorage.getItem('smart_math_ai_counter') || '0')
   };
 
   // --- Settings (localStorage) ---
@@ -33,6 +34,8 @@
       aiVendor: localStorage.getItem('smart_math_ai_vendor') || 'deepseek',
       aiModel: localStorage.getItem('smart_math_ai_model') || 'deepseek-chat',
       soundEnabled: localStorage.getItem('smart_math_sound') !== 'false',
+      dailyGoal: parseInt(localStorage.getItem('smart_math_daily_goal') || '10'),
+      aiEvalFrequency: parseInt(localStorage.getItem('smart_math_ai_eval_freq') || '10'),
       theme: localStorage.getItem('smart_math_theme') || 'light'
     };
   }
@@ -207,13 +210,15 @@
     try {
       const daily = await getDailyPractice(today);
       const attempted = daily ? daily.attempted : 0;
-      const goal = 10; // Daily goal of 10 questions
+      const goal = parseInt(localStorage.getItem('smart_math_daily_goal') || '10');
       const pct = Math.min(100, Math.round((attempted / goal) * 100));
       $('#progressBarFill').style.width = pct + '%';
       $('#dailyCount').textContent = attempted;
+      $('#dailyGoalLabel').textContent = '/' + goal;
     } catch (e) {
       $('#progressBarFill').style.width = '0%';
       $('#dailyCount').textContent = '0';
+      $('#dailyGoalLabel').textContent = '/10';
     }
   }
 
@@ -232,24 +237,33 @@
     const settings = getSettings();
 
     try {
-      // Get recent attempts and skill progress for adaptive selection
+      // Get recent attempts and skill progress for adaptive AI evaluation
       let recentAttempts = [];
       let skillProgress = [];
 
       try {
-        recentAttempts = await getRecentAttempts(10);
+        // Fetch up to 100 recent attempts for AI context
+        recentAttempts = await getRecentAttempts(100);
         skillProgress = await getAllSkillProgress(settings.gradeLevel);
       } catch (e) {
         console.warn('Could not load progress data:', e);
       }
 
-      // Determine next question plan
+      // Determine next question plan (used as AI suggestion, AI can override)
       const plan = selectNextQuestionPlan(settings.gradeLevel, recentAttempts, skillProgress);
 
-      // Build profile for AI
+      // Build comprehensive profile for AI evaluation
       const totalCorrect = skillProgress.reduce((sum, sp) => sum + (sp.correct || 0), 0);
       const totalAttempted = skillProgress.reduce((sum, sp) => sum + (sp.attempted || 0), 0);
       const successRate = totalAttempted > 0 ? totalCorrect / totalAttempted : 0.5;
+
+      // Domain accuracy stats
+      const domainStats = {};
+      for (const a of recentAttempts) {
+        if (!domainStats[a.domain]) domainStats[a.domain] = { total: 0, correct: 0 };
+        domainStats[a.domain].total++;
+        if (a.isCorrect) domainStats[a.domain].correct++;
+      }
 
       // Find weakest and least practiced domains
       const domains = DOMAIN_GRADE_MAP[settings.gradeLevel] || DOMAIN_GRADE_MAP['2nd'];
@@ -278,6 +292,15 @@
         }
       }
 
+      // Compact skill progress for AI (mastery + difficulty only)
+      const skillProgressSummary = skillProgress.map(sp => ({
+        domain: sp.domain,
+        skill: sp.skill,
+        mastery: sp.mastery || 0,
+        currentDifficulty: sp.currentDifficulty || 1,
+        attempted: sp.attempted || 0
+      }));
+
       const profile = {
         childName: settings.childName || 'Learner',
         gradeLevel: settings.gradeLevel,
@@ -288,7 +311,10 @@
         streak: state.streak,
         weakestDomain,
         leastPracticedDomain,
-        recentHistory: recentAttempts.slice(0, 10).map(a => ({
+        domainStats,
+        skillProgress: skillProgressSummary,
+        // Send full history — AI will token-trim internally
+        recentHistory: recentAttempts.map(a => ({
           domain: a.domain,
           skill: a.skill,
           difficulty: a.difficulty,
@@ -299,12 +325,27 @@
         }))
       };
 
-      // Generate question (AI or local)
+      // Generate question — use AI only at evaluation checkpoints to save tokens
       let question;
-      try {
-        question = await generateQuestionSafe(profile);
-      } catch (e) {
-        console.warn('Question generation error:', e);
+      const evalFreq = settings.aiEvalFrequency;
+      state.questionsSinceLastAI++;
+      localStorage.setItem('smart_math_ai_counter', state.questionsSinceLastAI);
+
+      const shouldUseAI = canUseAI() && state.questionsSinceLastAI >= evalFreq;
+
+      if (shouldUseAI) {
+        try {
+          question = await generateAIQuestion(profile);
+          state.questionsSinceLastAI = 0;
+          localStorage.setItem('smart_math_ai_counter', '0');
+        } catch (e) {
+          console.warn('AI question failed, using local:', e.message);
+          question = null;
+        }
+      }
+
+      // Fall back to local if AI not used or failed
+      if (!question || !question.question) {
         question = generateLocalQuestion(settings.gradeLevel, plan.domain, plan.skill, plan.difficulty);
       }
 
@@ -844,6 +885,8 @@
     $('#gradeSelect').value = settings.gradeLevel;
     $('#aiToggle').checked = settings.aiEnabled;
     $('#soundToggle').checked = settings.soundEnabled;
+    $('#dailyGoalInput').value = parseInt(localStorage.getItem('smart_math_daily_goal') || '10');
+    $('#aiEvalFreqInput').value = parseInt(localStorage.getItem('smart_math_ai_eval_freq') || '10');
 
     // Show/hide API key
     $('#apiKeyInput').type = 'password';
@@ -910,6 +953,16 @@
     saveSetting('ai_vendor', aiVendor);
     saveSetting('ai_model', aiModel);
     saveSetting('sound', soundEnabled ? 'true' : 'false');
+
+    // Save daily goal
+    const dailyGoal = parseInt($('#dailyGoalInput').value) || 10;
+    localStorage.setItem('smart_math_daily_goal', Math.max(1, Math.min(100, dailyGoal)));
+
+    // Save AI evaluation frequency
+    const aiEvalFreq = parseInt($('#aiEvalFreqInput').value) || 10;
+    localStorage.setItem('smart_math_ai_eval_freq', Math.max(1, Math.min(50, aiEvalFreq)));
+    state.questionsSinceLastAI = 0;
+    localStorage.setItem('smart_math_ai_counter', '0');
 
     // Save custom endpoint if visible
     const customEndpoint = $('#customEndpointInput').value.trim();

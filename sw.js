@@ -11,7 +11,8 @@ const STATIC_ASSETS = [
   '/db.js',
   '/ai.js',
   '/curriculum.js',
-  '/manifest.json'
+  '/manifest.json',
+  '/favicon.svg'
 ];
 
 self.addEventListener('install', (event) => {
